@@ -27,33 +27,33 @@ public class WsServlet {
     Session ws;
 
     static Map<String, Session> conns = new HashMap<>(); //sessions per user name
-	
-	public void broadcast(Object d, String fn, int _i) throws IOException {
+
+    public void broadcast(Object d, String fn, int _i) throws IOException {
 
         //if (d  instanceof BasicDBList){
-         //   for (Object o : (BasicDBList)d) { broadcast(o, fn, _i); }
+        //   for (Object o : (BasicDBList)d) { broadcast(o, fn, _i); }
         //}else {
-            BasicDBObject o = (BasicDBObject) d;
-            String reply = JSON.serialize(new BasicDBObject("msg", d).append("fn", fn));
-            if (o.containsField("_canRead")){
-                for (Object i : (BasicDBList)o.get("_canRead")){
-                    Session wsi = conns.get(i);
-                    if (!wsi.equals(ws))
-                        wsi.getBasicRemote().sendText(reply);
-                }
-            }else{
-                for (Session s : ws.getOpenSessions())
-                    if (!s.equals(ws))
-                        s.getBasicRemote().sendText(reply);
+        BasicDBObject o = (BasicDBObject) d;
+        String reply = JSON.serialize(new BasicDBObject("msg", d).append("fn", fn));
+        if (o.containsField("_canRead")){
+            for (Object i : (BasicDBList)o.get("_canRead")){
+                Session wsi = conns.get(i);
+                if (!wsi.equals(ws))
+                    wsi.getBasicRemote().sendText(reply);
             }
+        }else{
+            for (Session s : ws.getOpenSessions())
+                if (!s.equals(ws))
+                    s.getBasicRemote().sendText(reply);
+        }
         //}
 
-	}
+    }
 
 
     @OnOpen
     public void onOpen(Session session, EndpointConfig c ) throws IOException, ParseException {
-    	//session.setMaxIdleTimeout(0);
+        //session.setMaxIdleTimeout(0);
 
         this.ws = session;
 
@@ -63,6 +63,7 @@ public class WsServlet {
         this.token = qs.get("token").get(0);
         System.out.println("token " + token+" "+coll.getName());
         email = tokens.get(token);
+
         if (email!=null){
             conns.put(email, session);
         }
@@ -73,11 +74,11 @@ public class WsServlet {
     public void onClose(Session session) {
         conns.remove(email);
     }
-    
+
     @OnMessage
     public String onMessage(String message) {
 
-    	try{
+        try{
             BasicDBObject o = (BasicDBObject) JSON.parse(message);
             String fn = o.getString("fn");
 
@@ -106,7 +107,7 @@ public class WsServlet {
                     }
                 }
 
-
+                System.out.println("q "+args[0]);
                 int _i = o.getInt("_i");
 
                 Object obj = coll.getClass().getMethod(fn, types).invoke(coll, args);
@@ -128,11 +129,11 @@ public class WsServlet {
                     return JSON.serialize(new BasicDBObject("msg", obj).append("_i", _i));
 
             }
-    		
-    	}catch(Exception e){
-    		e.printStackTrace();
-    		return JSON.serialize(new BasicDBObject("error", e.getMessage()));
-    	}
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return JSON.serialize(new BasicDBObject("error", e.getMessage()));
+        }
     }
 
 }
@@ -143,10 +144,19 @@ enum Access implements Control {
         public void control(Object[] l, final String email){
             if(email!=null){
                 BasicDBObject q = (BasicDBObject)l[0];
-                BasicDBList or = (BasicDBList) q.get("$or");
-                if (or==null) or = new BasicDBList();
+                BasicDBList or_ = (BasicDBList) q.remove("$or");
+                BasicDBList or = new BasicDBList();
                 or.add(new BasicDBObject("_canRead", null));
                 or.add(new BasicDBObject("_canRead", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+
+                if (or_==null) q.put("$or", or);
+                else {
+                    BasicDBList and = (BasicDBList) q.get("$and");
+                    if (and==null) and = new BasicDBList();
+                    and.add(new BasicDBObject("$or", or));
+                    and.add(new BasicDBObject("$or", or_));
+                    q.put("$and", and);
+                }
             }else{
                 ((BasicDBObject)l[0]).put("_canRead", null);
             }
@@ -171,10 +181,19 @@ enum Access implements Control {
         public void control(Object[] l, final String email){
             if(email!=null){
                 BasicDBObject q = (BasicDBObject)l[0];
-                BasicDBList or = (BasicDBList) q.get("$or");
-                if (or==null) or = new BasicDBList();
+                BasicDBList or_ = (BasicDBList) q.remove("$or");
+                BasicDBList or = new BasicDBList();
                 or.add(new BasicDBObject("_canRemove", null));
                 or.add(new BasicDBObject("_canRemove", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+
+                if (or_==null) q.put("$or", or);
+                else {
+                    BasicDBList and = (BasicDBList) q.get("$and");
+                    if (and==null) and = new BasicDBList();
+                    and.add(new BasicDBObject("$or", or));
+                    and.add(new BasicDBObject("$or", or_));
+                    q.put("$and", and);
+                }
             }else{
                 ((BasicDBObject)l[0]).put("_canRead", null);
             }
@@ -185,10 +204,19 @@ enum Access implements Control {
             if (l[0]!=null){
                 if(email!=null){
                     BasicDBObject q = (BasicDBObject)l[0];
-                    BasicDBList or = (BasicDBList) q.get("$or");
-                    if (or==null) or = new BasicDBList();
+                    BasicDBList or_ = (BasicDBList) q.remove("$or");
+                    BasicDBList or = new BasicDBList();
                     or.add(new BasicDBObject("_canUpsert", null));
                     or.add(new BasicDBObject("_canUpsert", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+
+                    if (or_==null) q.put("$or", or);
+                    else {
+                        BasicDBList and = (BasicDBList) q.get("$and");
+                        if (and==null) and = new BasicDBList();
+                        and.add(new BasicDBObject("$or", or));
+                        and.add(new BasicDBObject("$or", or_));
+                        q.put("$and", and);
+                    }
                 }else{
                     ((BasicDBObject)l[0]).put("_canUpsert", null);
                 }
