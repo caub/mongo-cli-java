@@ -5,6 +5,7 @@ import static ws.Persistence.db;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
@@ -27,7 +28,7 @@ public class WsServlet {
 
     Session ws;
 
-    static Map<String, Session> conns = new HashMap<>(); //sessions per user name
+    static ConcurrentHashMap<String, Set<Session>> conns = new ConcurrentHashMap<>(); //sessions per user name
 
     Rights rights;
 
@@ -43,13 +44,14 @@ public class WsServlet {
                 ws.getBasicRemote().sendText(JSON.serialize(new BasicDBObject("msg", d).append("fn", fn).append("_i", _i)));
             else
                 for (Object i : (BasicDBList)o.get("_canRead")){
-                    Session wsi = conns.get(i);
-                    if (wsi.equals(ws))
-                        wsi.getBasicRemote().sendText(reply);
+                    if (conns.get(i)!=null && conns.get(i).size()>0)
+                        for(Session wsi : conns.get(i))
+                            if (!wsi.equals(ws))
+                                wsi.getBasicRemote().sendText(reply);
                 }
         }else{
             for (Session s : ws.getOpenSessions())
-                if (s.equals(ws))
+                if (!s.equals(ws))
                     s.getBasicRemote().sendText(reply);
         }
         //}
@@ -74,14 +76,18 @@ public class WsServlet {
         rights = new Rights(email);
 
         if (email!=null){
-            conns.put(email, session);
+            if (conns.containsKey(email))
+                conns.get(email).add(session);
+            else
+                conns.put(email, new HashSet<Session>(){{this.add(ws);}});
         }
         //session.getBasicRemote().sendText(JSON.serialize(new BasicDBObject("type", "auth").append("doc", userToken)));
     }
 
     @OnClose
     public void onClose(Session session) {
-        conns.remove(email);
+        if (email!=null)
+            conns.get(email).remove(session);
     }
 
     @OnMessage
