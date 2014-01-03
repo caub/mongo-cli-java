@@ -7,13 +7,14 @@ import java.text.ParseException;
 import java.util.*;
 
 import javax.websocket.*;
+import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
 import com.mongodb.*;
 import com.mongodb.util.JSON;
 import org.bson.types.ObjectId;
 
-@ServerEndpoint("/api")
+@ServerEndpoint("/api/{collection}")
 public class WsServlet {
 
     DBCollection coll;
@@ -28,22 +29,27 @@ public class WsServlet {
 
     static Map<String, Session> conns = new HashMap<>(); //sessions per user name
 
+    Rights rights;
+
     public void broadcast(Object d, String fn, int _i) throws IOException {
 
-        //if (d  instanceof BasicDBList){
+        //if (d  instanceof BasicDBList){ //insert doesn't return new documents unlike in nodejs
         //   for (Object o : (BasicDBList)d) { broadcast(o, fn, _i); }
         //}else {
         BasicDBObject o = (BasicDBObject) d;
         String reply = JSON.serialize(new BasicDBObject("msg", d).append("fn", fn));
         if (o.containsField("_canRead")){
-            for (Object i : (BasicDBList)o.get("_canRead")){
-                Session wsi = conns.get(i);
-                if (!wsi.equals(ws))
-                    wsi.getBasicRemote().sendText(reply);
-            }
+            if (((BasicDBList)o.get("_canRead")).size()==0)
+                ws.getBasicRemote().sendText(JSON.serialize(new BasicDBObject("msg", d).append("fn", fn).append("_i", _i)));
+            else
+                for (Object i : (BasicDBList)o.get("_canRead")){
+                    Session wsi = conns.get(i);
+                    if (wsi.equals(ws))
+                        wsi.getBasicRemote().sendText(reply);
+                }
         }else{
             for (Session s : ws.getOpenSessions())
-                if (!s.equals(ws))
+                if (s.equals(ws))
                     s.getBasicRemote().sendText(reply);
         }
         //}
@@ -52,17 +58,20 @@ public class WsServlet {
 
 
     @OnOpen
-    public void onOpen(Session session, EndpointConfig c ) throws IOException, ParseException {
+    public void onOpen(Session session, EndpointConfig c,
+                       @PathParam("collection") String collname ) throws IOException, ParseException {
         //session.setMaxIdleTimeout(0);
 
         this.ws = session;
 
         System.out.println("qs "+session.getQueryString());
         Map<String, List<String>> qs = session.getRequestParameterMap();
-        this.coll = db.getCollection(prefix + qs.get("coll").get(0));
+        this.coll = db.getCollection(prefix + collname /*qs.get("coll").get(0)*/);
         this.token = qs.get("token").get(0);
-        System.out.println("token " + token+" "+coll.getName());
+        System.out.println("token " + token+" "+this.coll.getName());
         email = tokens.get(token);
+
+        rights = new Rights(email);
 
         if (email!=null){
             conns.put(email, session);
@@ -97,7 +106,7 @@ public class WsServlet {
                         q.put("_id", new ObjectId(q.getString("_id")));
                 }*/
 
-                c.control(args, email);
+                c.control(args, rights);
 
                 Class[] types = new Class[args.length];
                 for (int i=0; i<args.length; i++){
@@ -107,7 +116,7 @@ public class WsServlet {
                     }
                 }
 
-                System.out.println("q "+args[0]);
+                //System.out.println("r "+args[0]);
                 int _i = o.getInt("_i");
 
                 Object obj = coll.getClass().getMethod(fn, types).invoke(coll, args);
@@ -120,7 +129,7 @@ public class WsServlet {
                     System.out.println("find"+result);
                     return JSON.serialize(new BasicDBObject("msg", result).append("_i", _i));
 
-                }else if(obj instanceof DBObject){//worth broadcasting
+                }else if(obj instanceof DBObject){//worth broadcasting //check null?
                     broadcast(obj, fn , _i);
                     return JSON.serialize(new BasicDBObject("msg", obj).append("fn",fn).append("_i",_i));
                 }else if (obj instanceof WriteResult)
@@ -136,107 +145,115 @@ public class WsServlet {
         }
     }
 
+
+
 }
+
+class Rights {
+    String email;
+    public Rights(final String email){
+        this.email = email;
+        if (email!=null){
+            _canRead.add(new BasicDBObject("_canRead", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+            _canUpsert.add(new BasicDBObject("_canUpsert", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+            _canRemove.add(new BasicDBObject("_canRemove", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+        }
+    }
+
+    BasicDBList _canRead = new BasicDBList(){{
+        this.add(new BasicDBObject("_canRead", null));
+        this.add(new BasicDBObject("_canRead", new BasicDBObject("$size", 0)));
+    }};
+    BasicDBList _canUpsert = new BasicDBList(){{
+        this.add(new BasicDBObject("_canUpsert", null));
+        this.add(new BasicDBObject("_canUpsert", new BasicDBObject("$size", 0)));
+    }};
+    BasicDBList _canRemove = new BasicDBList(){{
+        this.add(new BasicDBObject("_canRemove", null));
+        this.add(new BasicDBObject("_canRemove", new BasicDBObject("$size", 0)));
+    }};
+}
+
 
 
 enum Access implements Control {
     find {
-        public void control(Object[] l, final String email){
-            if(email!=null){
-                BasicDBObject q = (BasicDBObject)l[0];
-                BasicDBList or_ = (BasicDBList) q.remove("$or");
-                BasicDBList or = new BasicDBList();
-                or.add(new BasicDBObject("_canRead", null));
-                or.add(new BasicDBObject("_canRead", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
-
-                if (or_==null) q.put("$or", or);
-                else {
-                    BasicDBList and = (BasicDBList) q.get("$and");
-                    if (and==null) and = new BasicDBList();
-                    and.add(new BasicDBObject("$or", or));
-                    and.add(new BasicDBObject("$or", or_));
-                    q.put("$and", and);
-                }
+        public void control(Object[] a, final Rights rights){
+            BasicDBObject q = (BasicDBObject)a[0];
+            if (q.containsField("$query")){
+                BasicDBObject q2 = (BasicDBObject) q.get("$query");
+                if (q2.containsField("$or")){
+                    BasicDBList and=new BasicDBList();
+                    and.add(q2);
+                    and.add(new BasicDBObject("$or",rights._canRead));
+                    q2=new BasicDBObject("$and", and);
+                }else
+                    q2.put("$or", rights._canRead);
             }else{
-                ((BasicDBObject)l[0]).put("_canRead", null);
+                if (q.containsField("$or")){
+                    BasicDBList and=new BasicDBList();
+                    and.add(q);
+                    and.add(new BasicDBObject("$or",rights._canRead));
+                    q=new BasicDBObject("$and", and);
+                }else
+                    q.put("$or", rights._canRead);
             }
         }
     },
     insert {
-        public void control(Object[] l, String email){
-            if(email==null){
-                if (l[0]  instanceof BasicDBList){//@TODO use a proper json lib
-                    BasicDBList l_ = (BasicDBList) l[0];
-                    for (Object o : l_)
+        public void control(Object[] a, Rights rights){
+            if(rights.email==null){
+                if (a[0]  instanceof BasicDBList){//@TODO use a proper json lib
+                    BasicDBList a_ = (BasicDBList) a[0];
+                    for (Object o : a_)
                         removeSpecialFields(o);
-                    l[0] = l_.toArray(new DBObject[l_.size()]);
+                    a[0] = a_.toArray(new DBObject[a_.size()]);
 
                 }else{
-                    removeSpecialFields(l[0]);
+                    removeSpecialFields(a[0]);
                 }
             }
         }
     },
     remove {
-        public void control(Object[] l, final String email){
-            if(email!=null){
-                BasicDBObject q = (BasicDBObject)l[0];
-                BasicDBList or_ = (BasicDBList) q.remove("$or");
-                BasicDBList or = new BasicDBList();
-                or.add(new BasicDBObject("_canRemove", null));
-                or.add(new BasicDBObject("_canRemove", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
-
-                if (or_==null) q.put("$or", or);
-                else {
-                    BasicDBList and = (BasicDBList) q.get("$and");
-                    if (and==null) and = new BasicDBList();
-                    and.add(new BasicDBObject("$or", or));
-                    and.add(new BasicDBObject("$or", or_));
-                    q.put("$and", and);
-                }
-            }else{
-                ((BasicDBObject)l[0]).put("_canRead", null);
-            }
+        public void control(Object[] a, Rights rights){
+            BasicDBObject q = (BasicDBObject)a[0];
+            if (q.containsField("$or")){
+                BasicDBList and=new BasicDBList();
+                and.add(q);
+                and.add(new BasicDBObject("$or",rights._canRemove));
+                q=new BasicDBObject("$and", and);
+            }else
+                q.put("$or", rights._canRemove);
         }
     },
     update {
-        public void control(Object[] l, final String email){
-            if (l[0]!=null){
-                if(email!=null){
-                    BasicDBObject q = (BasicDBObject)l[0];
-                    BasicDBList or_ = (BasicDBList) q.remove("$or");
-                    BasicDBList or = new BasicDBList();
-                    or.add(new BasicDBObject("_canUpsert", null));
-                    or.add(new BasicDBObject("_canUpsert", new BasicDBObject("$in", new BasicDBList() {{this.add(email);}})));
+        public void control(Object[] a, Rights rights){
+            BasicDBObject q = (BasicDBObject)a[0];
+            if (q.containsField("$or")){
+                BasicDBList and=new BasicDBList();
+                and.add(q);
+                and.add(new BasicDBObject("$or",rights._canUpsert));
+                q=new BasicDBObject("$and", and);
+            }else
+                q.put("$or", rights._canUpsert);
 
-                    if (or_==null) q.put("$or", or);
-                    else {
-                        BasicDBList and = (BasicDBList) q.get("$and");
-                        if (and==null) and = new BasicDBList();
-                        and.add(new BasicDBObject("$or", or));
-                        and.add(new BasicDBObject("$or", or_));
-                        q.put("$and", and);
-                    }
-                }else{
-                    ((BasicDBObject)l[0]).put("_canUpsert", null);
-                }
-            }
-            if ( email==null){
-                if (l.length>3)
-                    removeSpecialFields(l[l.length-3]);
-                else if (l.length>1)
-                    removeSpecialFields(l[l.length-1]);
+            if ( rights.email==null){
+                if (a.length<=3)
+                    removeSpecialFields(a[a.length-1]);
+                else
+                    removeSpecialFields(a[a.length-3]);
             }
         }
     },
     findAndModify {
-        public void control(Object[] l, String email){Access.update.control(l, email);}
+        public void control(Object[] a, Rights rights){Access.update.control(a, rights);}
     },
     findAndRemove {
-        public void control(Object[] l, String email){ Access.remove.control(l, email); }
+        public void control(Object[] a,Rights rights){ Access.remove.control(a, rights); }
     },
     save {
-        public void control(Object[] l, String email){ Access.insert.control(l, email); }
+        public void control(Object[] a,Rights rights){ Access.insert.control(a, rights); }
     };
 
     public void removeSpecialFields(Object o_) {
@@ -256,9 +273,10 @@ enum Access implements Control {
         o.remove("_canUpsert");
         o.remove("_canRemove");
         o.remove("_canRead");
+
     }
 }
 
 interface Control {
-    public void control(Object[] l, String email);
+    public void control(Object[] l, Rights rights);
 }

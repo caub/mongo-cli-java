@@ -2,13 +2,13 @@
 <h1>Mongo console</h1>
 <a href="http://api.mongodb.org/java/current/com/mongodb/DBCollection.html">using java-API</a>
 <pre>
-send({fn:'insert', args:[{a:3}]}, function(d){console.log(d)})
+send({fn:'insert', args:[[{a:3}]]}, function(d){console.log(d)})
 send({fn:'find', args:[{}]}, function(d){console.log(d)})
 </pre>
 
 <p>For having the ability to put _canRead, _canUpsert and _canRemove fields in inserted documents, sign in using OpenID</p>
   <pre>
-send({fn:'insert', args:[{a:4,_canRead:['cyril.auburtin@gmail.com']}]}, function(d){console.log(d)})
+send({fn:'insert', args:[[{a:4,_canRead:['cyril.auburtin@gmail.com']}]]}, function(d){console.log(d)})
 send({fn:'find', args:[{a:4}]}, function(d){console.log(d)}) //returns it if you're this user ^, try with your email
 </pre>
 
@@ -28,9 +28,10 @@ var coll = 'foo';
 var token = document.cookie.replace(/(?:(?:^|.*;\s*)wscb\s*\=\s*([^;]*).*$)|^.*$/, "$1");
 
 //var host = 'http://a.cyril.eu.cloudbees.net';
-var host = 'http://localhost:8080';
+var host = 'http://mongo-cli-java.herokuapp.com';
+//var host = 'http://localhost:8080';
 
-var ws = new WebSocket(host.replace('http','ws')+'/api?token='+token+'&coll='+coll);
+var ws = new WebSocket(host.replace('http','ws')+'/api/'+coll+'?token='+token);
 
 ws.onopen    = function()  {
   console.log('[*] open');
@@ -56,7 +57,7 @@ ws.onmessage = function(e) {
   }
 };
 ws.onclose   = function()  {console.log('[*] close');};
-setInterval(function(){ send({fn:'echo', msg:'ping!'}) }, 60000 );
+setInterval(function(){ send({fn:'echo', msg:'ping!'},function(r){console.debug(r)}) }, 20000 );
 
 function send(o, cb){
   o._i = firstCbsI();
