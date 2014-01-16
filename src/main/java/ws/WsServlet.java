@@ -39,16 +39,14 @@ public class WsServlet {
         //}else {
         BasicDBObject o = (BasicDBObject) d;
         String reply = JSON.serialize(new BasicDBObject("msg", d).append("fn", fn));
-        if (o.containsField("_canRead")){
-            if (((BasicDBList)o.get("_canRead")).size()==0)
-                ws.getBasicRemote().sendText(JSON.serialize(new BasicDBObject("msg", d).append("fn", fn).append("_i", _i)));
-            else
-                for (Object i : (BasicDBList)o.get("_canRead")){
-                    if (conns.get(i)!=null && conns.get(i).size()>0)
-                        for(Session wsi : conns.get(i))
-                            if (!wsi.equals(ws))
-                                wsi.getBasicRemote().sendText(reply);
-                }
+        BasicDBList readers=(BasicDBList)o.get("_canRead");
+        if (readers!=null && readers.size()!=0){
+            for (Object i : readers){
+                if (conns.get(i)!=null && conns.get(i).size()>0)
+                    for(Session wsi : conns.get(i))
+                        if (!wsi.equals(ws))
+                            wsi.getBasicRemote().sendText(reply);
+            }
         }else{
             for (Session s : ws.getOpenSessions())
                 if (!s.equals(ws))

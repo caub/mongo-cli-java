@@ -5,7 +5,7 @@ MongoDB from a websocket, with extra features:
  - **Access-rights** on documents
  - **Notifications**
 
-The syntax is following [java-mongodb driver API](http://api.mongodb.org/java/current/com/mongodb/DBCollection.html)
+The syntax is following [java-mongodb driver API](http://api.mongodb.org/java/current/com/mongodb/DBCollection.html)  
 Example in javascript:
 
     send({fn:'find', args:[{a: 2}]}, function(d){console.log(d)})
@@ -28,7 +28,7 @@ Demo server:
  - [heroku](http://mongo-cli-java.herokuapp.com/)
  - or from [cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
 
-Some apps using it:
+Some demo apps using it:
  - [Calendar](http://jsbin.com/UmUbipa/latest)
  - [Task list](http://jsbin.com/EduGeZE/latest)
  - [Collaborative painting](http://jsbin.com/afiMEWa/latest)
