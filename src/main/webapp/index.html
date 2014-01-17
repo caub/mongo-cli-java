@@ -27,9 +27,10 @@ send({fn:'find', args:[{a:4}]}, function(d){console.log(d)}) //returns it if you
 var coll = 'foo';
 var token = document.cookie.replace(/(?:(?:^|.*;\s*)wscb\s*\=\s*([^;]*).*$)|^.*$/, "$1");
 
-//var host = 'http://a.cyril.eu.cloudbees.net';
-var host = 'http://mongo-cli-java.herokuapp.com';
+//var host = 'http://mongo-cli-java.cyril.eu.cloudbees.net';
+//var host = 'http://mongo-cli-java.herokuapp.com';
 //var host = 'http://localhost:8080';
+var host = location.href.match(/(.*)\/$/)[1];
 
 var ws = new WebSocket(host.replace('http','ws')+'/api/'+coll+'?token='+token);
 

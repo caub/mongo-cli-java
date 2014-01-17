@@ -43,15 +43,17 @@ public class OpenIdServlet extends HttpServlet {
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         manager = new OpenIdManager();
-        /*
-        manager.setRealm("http://a.cyril.eu.cloudbees.net");
-        manager.setReturnTo("http://a.cyril.eu.cloudbees.net/openid/verify"); // change to your servlet url
-        manager.setRealm("http://localhost:8080"); // change to your domain
+
+        manager.setRealm("http://mongo-cli-java.cyril.eu.cloudbees.net");
+        manager.setReturnTo("http://mongo-cli-java.cyril.eu.cloudbees.net/openid/verify");
+
+        /*manager.setRealm("http://localhost:8080"); // change to your domain
         manager.setReturnTo("http://localhost:8080/openid/verify"); // change to your servlet url
-         */
+
 
         manager.setRealm("http://mongo-cli-java.herokuapp.com");
         manager.setReturnTo("http://mongo-cli-java.herokuapp.com/openid/verify");
+        */
     }
     
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
