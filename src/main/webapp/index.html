@@ -1,36 +1,32 @@
+<a href="https://github.com/n11/mongo-cli-java"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
 
-<h1>Mongo console</h1>
-<a href="http://api.mongodb.org/java/current/com/mongodb/DBCollection.html">using java-API</a>
+<h1 style="font-size: 3em;">Mongo-cli</h1>
+The API is following <a href="http://api.mongodb.org/java/current/com/mongodb/DBCollection.html">Java Mongo API</a>, try it in your browser console:
 <pre>
 send({fn:'insert', args:[[{a:3}]]}, function(d){console.log(d)})
-send({fn:'find', args:[{}]}, function(d){console.log(d)})
+send({fn:'find', args:[{}]}, function(d){console.log(d)}) // return matching documents (for which _canRead list is empty or null, "public documents")
 </pre>
 
-<p>For having the ability to put _canRead, _canUpsert and _canRemove fields in inserted documents, sign in using OpenID</p>
-  <pre>
-send({fn:'insert', args:[[{a:4,_canRead:['cyril.auburtin@gmail.com']}]]}, function(d){console.log(d)})
-send({fn:'find', args:[{a:4}]}, function(d){console.log(d)}) //returns it if you're this user ^, try with your email
+<p>
+    <span id=unlogged>_canRead, _canUpsert and _canRemove are special fields only allowed if you're authenticated with an <button id=login>OpenID</button> <input id=openId value="https://www.google.com/accounts/o8/id" style="width:240px"></span>
+    <span id=logged style="display:none"><span id=emailSpan></span> <button id=logout>Sign out</button></span>
+</p>
+<pre>
+send({fn:'insert', args:[{a:4, _canRead:['test.mongocli@gmail.com','j.doe@gmail.com']}]}, function(d){console.log(d)}) //response multicasted to _canRead group or all if empty
+send({fn:'find', args:[{a:4}]}, function(d){console.log(d)}) //returns matching documents for which _canRead list is empty, null or containing your identity
+send({fn:'remove', args:[{a:4}]}, function(d){console.log(d)}) //removes matching documents for which _canRemove list is null, empty or containing your identity
 </pre>
 
-
-<div id=openid>
-    <button  data-url='https://www.google.com/accounts/o8/id'>Google</button>
-    <button data-url='http://open.login.yahooapis.com/openid20/www.yahoo.com/xrds'>Yahoo</button>
-</div>
-<div id="authed" style="display:none">
-    <h3>Hello <b id=email></b></h3>
-    <button id="logout"  >Logout</button>
-</div>
-
-<script src="//code.jquery.com/jquery-latest.js"></script>
 <script>
+
 var coll = 'foo';
-var token = document.cookie.replace(/(?:(?:^|.*;\s*)wscb\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+var token = document.cookie.replace(/(?:(?:^|.*;\s*)wsc9\s*\=\s*([^;]*).*$)|^.*$/, "$1"), email;
 
 //var host = 'http://mongo-cli-java.cyril.eu.cloudbees.net';
 //var host = 'http://mongo-cli-java.herokuapp.com';
-//var host = 'http://localhost:8080';
-var host = location.href.match(/(.*)\/$/)[1];
+
+//var host = 'http://localhost:8080/mongo-cli-0.0.1-SNAPSHOT';
+var host = location.href.substr(0, location.href.length-1);
 
 var ws = new WebSocket(host.replace('http','ws')+'/api/'+coll+'?token='+token);
 
@@ -40,25 +36,26 @@ ws.onopen    = function()  {
     send({fn:'auth'}, function(_email){
       email = _email;
       if (email){
-        $('#authed').show().find('#email').text(email);
-        $('#openid').hide();
+        emailSpan.innerHTML = email;
+        unlogged.style.display='none';
+        logged.style.display='';
       }
     });
   }
 };
 
 ws.onmessage = function(e) {
-
   var r=JSON.parse(e.data);
   if (cbs[r._i]){
     cbs[r._i](r.msg);
     cbs[r._i]=undefined;
   }else{
-    console.log('[.] message', e.data);
+    console.log(r);
   }
 };
-ws.onclose   = function()  {console.log('[*] close');};
-setInterval(function(){ send({fn:'echo', msg:'ping!'},function(r){console.debug(r)}) }, 20000 );
+ws.onclose   = function()  { console.log('[*] close', pings);};
+var pings=0;
+setInterval(function(){ send({fn:'echo'}, function(d){ pings++;}) }, 20000 );
 
 function send(o, cb){
   o._i = firstCbsI();
@@ -75,22 +72,22 @@ function firstCbsI(){
 }
 
 
-$('#logout').click(function(){
-  document.cookie='wscb=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-  email="";
-  token="";
-  $('#authed').hide();
-  $('#openid').show();
+logout.onclick = function(){
+    document.cookie='wsc9=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    email="";
+    token="";
+    emailSpan.innerHTML = email;
+    unlogged.style.display='';
+    logged.style.display='none';
+};
 
-})
-
-
-$('#openid button').click(function(){
-    var popup = window.open( host+'/openid/authenticate?openid_identifier='+encodeURIComponent($(this).data('url')), 'openid_popup', 'width=790,height=580');
+login.onclick =function(){
+    var url = openId.value;
+    var popup = window.open( 'http://mongo-cli-java.cyril.eu.cloudbees.net/openid/authenticate?openid_identifier='+url, 'openid_popup', 'width=790,height=580');
     setInterval(function(){
-        popup.postMessage("ping", host);
+        popup.postMessage("ping", "http://mongo-cli-java.cyril.eu.cloudbees.net");
     }, 500);
-})
+};
 
 function receiveOpenIdMessage(event){
   console.log(event.data);
@@ -98,9 +95,10 @@ function receiveOpenIdMessage(event){
     var r = JSON.parse(event.data);
     token = r.token;
     email = r.email;
-    $('#authed').show().find('#email').text(email);
-    $('#openid').hide();
-    document.cookie='wscb='+token+'; expires='+new Date(Date.now()+1000*3600*24).toUTCString()+'; path=/';
+    emailSpan.innerHTML = email;
+    unlogged.style.display='none';
+    logged.style.display='';
+    document.cookie='wsc9='+token+'; expires='+new Date(Date.now()+1000*3600*24).toUTCString()+'; path=/';
   }
 }
 window.addEventListener("message", receiveOpenIdMessage, false);

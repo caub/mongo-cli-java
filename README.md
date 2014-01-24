@@ -26,7 +26,7 @@ Example in javascript:
 
 Demo server:
  - [heroku](http://mongo-cli-java.herokuapp.com/)
- - or from [cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
+ - [cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
 
 Some demo apps using it:
  - [Calendar](http://jsbin.com/UmUbipa/latest)

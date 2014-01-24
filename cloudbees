@@ -1,7 +1,7 @@
 
 # deploy
-bees app:deploy -a cyril/mongo-cli-java -t tomcat8 target/mongo-cli-0.0.1-SNAPSHOT.war
+bees app:deploy -a mongo-cli-java -t tomcat8 target/mongo-cli-0.0.1-SNAPSHOT.war
 
 #for websockets https://developer.cloudbees.com/bin/view/RUN/WebSockets
-bees app:proxy:update -a mongo-cli http_version=1.1
+bees app:proxy:update -a mongo-cli-java http_version=1.1
 

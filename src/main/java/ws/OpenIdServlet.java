@@ -61,8 +61,8 @@ public class OpenIdServlet extends HttpServlet {
         
         HttpSession httpSession = req.getSession();
         String op = req.getParameter("openid_identifier");
-        
-        if (op!=null){ //req.getPathInfo().equals("authenticate")
+
+        if (req.getPathInfo().endsWith("authenticate")){
             
             Endpoint endpoint = manager.lookupEndpoint(op);
             Association association = manager.lookupAssociation(endpoint);
@@ -90,7 +90,7 @@ public class OpenIdServlet extends HttpServlet {
         	writer.println("It should close..</body></html>");*/
         	
        
-        } else {
+        } else if(req.getPathInfo().endsWith("verify")) {
             // check nonce:
             checkNonce(req.getParameter("openid.response_nonce"));
             // get authentication:
@@ -134,6 +134,8 @@ public class OpenIdServlet extends HttpServlet {
             }
             
             
+        }else{
+            writer.println(req.getPathInfo());
         }
 
     }
