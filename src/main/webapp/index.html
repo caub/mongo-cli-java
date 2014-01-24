@@ -83,9 +83,9 @@ logout.onclick = function(){
 
 login.onclick =function(){
     var url = openId.value;
-    var popup = window.open( 'http://mongo-cli-java.cyril.eu.cloudbees.net/openid/authenticate?openid_identifier='+url, 'openid_popup', 'width=790,height=580');
+    var popup = window.open( host + '/openid/authenticate?openid_identifier='+url, 'openid_popup', 'width=790,height=580');
     setInterval(function(){
-        popup.postMessage("ping", "http://mongo-cli-java.cyril.eu.cloudbees.net");
+        popup.postMessage("ping", host);
     }, 500);
 };
 

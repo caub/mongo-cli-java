@@ -9,6 +9,7 @@ import java.util.Set;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import org.apache.catalina.Context;
+import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 
 import javax.servlet.ServletException;
