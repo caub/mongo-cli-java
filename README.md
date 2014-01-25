@@ -28,7 +28,5 @@ Demo server:
  - [heroku](http://mongo-cli-java.herokuapp.com/)
  - [cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
 
-Some demo apps using it:
- - [Calendar](http://jsbin.com/UmUbipa/latest)
- - [Task list](http://jsbin.com/EduGeZE/latest)
- - [Collaborative painting](http://jsbin.com/afiMEWa/latest)
+
+Nodejs port: https://github.com/n11/mongo-cli-nodejs
