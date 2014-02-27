@@ -31,7 +31,7 @@ public class Main {
         String webappDirLocation = "src/main/webapp/";
         Tomcat tomcat = new Tomcat();
 
-        String webPort = System.getenv("PORT");
+        String webPort = System.getenv("PORT");//"app.port"
         if(webPort == null || webPort.isEmpty()) {
             webPort = "8080";
         }

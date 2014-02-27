@@ -55,26 +55,26 @@ public class OpenIdServlet extends HttpServlet {
         manager.setReturnTo("http://mongo-cli-java.herokuapp.com/openid/verify");
 
     }
-    
+
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         PrintWriter writer = resp.getWriter();
-        
+
         HttpSession httpSession = req.getSession();
         String op = req.getParameter("openid_identifier");
 
         if (req.getPathInfo().endsWith("authenticate")){
-            
+
             Endpoint endpoint = manager.lookupEndpoint(op);
             Association association = manager.lookupAssociation(endpoint);
             httpSession.setAttribute(ATTR_MAC, association.getRawMacKey());
             httpSession.setAttribute(ATTR_ALIAS, endpoint.getAlias());
-            
+
         	String url = manager.getAuthenticationUrl(endpoint, association);
 
             resp.sendRedirect(url);
-        
+
        /* } else if(req.getParameter("echo_test")!=null) { //tests for popups corss origin communications
-        	
+
         	resp.setContentType("text/html");
             writer.println("<script>");
             writer.println("var authReply = {user: 'foo'};");
@@ -83,7 +83,7 @@ public class OpenIdServlet extends HttpServlet {
             writer.println("}");
             writer.println("window.addEventListener('message', receiveMessage, false);");
             writer.println("</script>");*/
-            
+
         	/*System.out.println(" ..test... ");
         	resp.setContentType("text/html");
         	writer.println("<html><body onload=\"window.opener.handleOpenIDResponse(window.location.href);window.close();\">");

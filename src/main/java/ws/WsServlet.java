@@ -183,25 +183,27 @@ class Rights {
 enum Access implements Control {
     find {
         public void control(Object[] a, final Rights rights){
-            BasicDBObject q = (BasicDBObject)a[0];
-            if (q.containsField("$query")){
-                BasicDBObject q2 = (BasicDBObject) q.get("$query");
-                if (q2.containsField("$or")){
-                    BasicDBList and=new BasicDBList();
-                    and.add(q2);
-                    and.add(new BasicDBObject("$or",rights._canRead));
-                    q2=new BasicDBObject("$and", and);
-                }else
-                    q2.put("$or", rights._canRead);
-            }else{
-                if (q.containsField("$or")){
-                    BasicDBList and=new BasicDBList();
-                    and.add(q);
-                    and.add(new BasicDBObject("$or",rights._canRead));
-                    q=new BasicDBObject("$and", and);
-                }else
-                    q.put("$or", rights._canRead);
-            }
+        	if (a.length>0){
+        		BasicDBObject q = (BasicDBObject)a[0];
+                if (q.containsField("$query")){
+                    BasicDBObject q2 = (BasicDBObject) q.get("$query");
+                    if (q2.containsField("$or")){
+                        BasicDBList and=new BasicDBList();
+                        and.add(q2);
+                        and.add(new BasicDBObject("$or",rights._canRead));
+                        q2=new BasicDBObject("$and", and);
+                    }else
+                        q2.put("$or", rights._canRead);
+                }else{
+                    if (q.containsField("$or")){
+                        BasicDBList and=new BasicDBList();
+                        and.add(q);
+                        and.add(new BasicDBObject("$or",rights._canRead));
+                        q=new BasicDBObject("$and", and);
+                    }else
+                        q.put("$or", rights._canRead);
+                }
+        	}
         }
     },
     insert {

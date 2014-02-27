@@ -12,7 +12,7 @@ send({fn:'find', args:[{}]}, function(d){console.log(d)}) // return matching doc
     <span id=logged style="display:none"><span id=emailSpan></span> <button id=logout>Sign out</button></span>
 </p>
 <pre>
-send({fn:'insert', args:[{a:4, _canRead:['test.mongocli@gmail.com','j.doe@gmail.com']}]}, function(d){console.log(d)}) //response multicasted to _canRead group or all if empty
+send({fn:'insert', args:[[{a:4, _canRead:['test.mongocli@gmail.com','j.doe@gmail.com']}]]}, function(d){console.log(d)}) //response multicasted to _canRead group or all if empty
 send({fn:'find', args:[{a:4}]}, function(d){console.log(d)}) //returns matching documents for which _canRead list is empty, null or containing your identity
 send({fn:'remove', args:[{a:4}]}, function(d){console.log(d)}) //removes matching documents for which _canRemove list is null, empty or containing your identity
 </pre>

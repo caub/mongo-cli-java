@@ -3,7 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.pe</groupId>
     <artifactId>mongo-cli</artifactId>
-    <!-- <packaging>war</packaging> -->
+    <!-- <packaging>war</packaging>-->
+
     <version>0.0.1-SNAPSHOT</version>
     <properties>
         <tomcat.version>8.0.0-RC5</tomcat.version>
@@ -55,16 +56,19 @@
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-core</artifactId>
                 <version>${tomcat.version}</version>
+
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-logging-juli</artifactId>
                 <version>${tomcat.version}</version>
+
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat.embed</groupId>
                 <artifactId>tomcat-embed-jasper</artifactId>
                 <version>${tomcat.version}</version>
+
             </dependency>
 
 
@@ -100,6 +104,8 @@
             <version>1.6.4</version>
             <optional>true</optional>
         </dependency>-->
+
+
 
 
     </dependencies>
@@ -162,7 +168,30 @@
                   </execution>
                 </executions>
               </plugin> -->
-			        
+
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>ws.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>

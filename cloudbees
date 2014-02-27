@@ -5,3 +5,6 @@ bees app:deploy -a mongo-cli-java -t tomcat8 target/mongo-cli-0.0.1-SNAPSHOT.war
 #for websockets https://developer.cloudbees.com/bin/view/RUN/WebSockets
 bees app:proxy:update -a mongo-cli-java http_version=1.1
 
+#bees app:deploy -a mongo-cli-java  -t java -R class=ws.Main -R java_version=1.7 target/mongo-cli-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+
+# you must uncomment packaging war in pom.xml, and also comment tomcat-embedded deps
