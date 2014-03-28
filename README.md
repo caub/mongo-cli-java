@@ -24,9 +24,6 @@ Example in javascript:
       note: not all methods will trigger notifications  findAndModify, findAndRemove do
            update, remove won't since it just return the number of updates.
 
-Demo server:
- - [heroku](http://mongo-cli-java.herokuapp.com/)
- - [cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
+Server demos: [Heroku](http://mongo-cli-java.herokuapp.com/), [Cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
 
-
-Nodejs port: https://github.com/n11/mongo-cli-nodejs
+Client demos: [MultiPaint](http://jsbin.com/afiMEWa/latest), [Chat](http://jsbin.com/facof/latest), [TasksList](http://jsbin.com/EduGeZE/latest), [Calendar](http://jsbin.com/UmUbipa/latest)

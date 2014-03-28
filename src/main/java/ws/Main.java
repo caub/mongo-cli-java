@@ -1,21 +1,16 @@
 package ws;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.HashSet;
-import java.util.Set;
+//import org.apache.catalina.startup.Tomcat;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import org.apache.catalina.Context;
-import org.apache.catalina.core.StandardContext;
-import org.apache.catalina.startup.Tomcat;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
+import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class Main {
 
@@ -23,25 +18,34 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
+
         //db
         Persistence.m = new MongoClient(new MongoClientURI(Persistence.MONGO_URI));
         Persistence.db = Persistence.m.getDB("jfx");
 
-        //tomcat embedded
-        String webappDirLocation = "src/main/webapp/";
-        Tomcat tomcat = new Tomcat();
+        //jetty embedded
+        int port = System.getenv("PORT")!=null? Integer.valueOf(System.getenv("PORT")): 8080;
+        System.out.println("port is "+port);
+        Server server = new Server(port);
 
-        String webPort = System.getenv("PORT");//"app.port"
-        if(webPort == null || webPort.isEmpty()) {
-            webPort = "8080";
-        }
-        tomcat.setPort(Integer.valueOf(webPort));
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
+        server.setHandler(context);
 
-        tomcat.addWebapp("/", new File(webappDirLocation).getAbsolutePath());
-        System.out.println("configuring app with basedir: " + new File("./" + webappDirLocation).getAbsolutePath());
+        ServerContainer wsContainer = WebSocketServerContainerInitializer.configureContext(context);
 
-        tomcat.start();
-        tomcat.getServer().await();
+        wsContainer.addEndpoint(WsServlet.class);
+
+        ServletHolder holderPwd = new ServletHolder("default", DefaultServlet.class);
+        holderPwd.setInitParameter("resourceBase","./src/main/webapp/");
+        holderPwd.setInitParameter("dirAllowed", "true");
+        context.addServlet(holderPwd, "/");
+
+        context.addServlet(ws.OpenIdServlet.class,"/openid/*");
+
+        server.start();
+        context.dumpStdErr();
+        server.join();
 
     }
 

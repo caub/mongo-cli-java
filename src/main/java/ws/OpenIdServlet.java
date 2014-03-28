@@ -1,12 +1,9 @@
 package ws;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
+import com.mongodb.util.JSON;
+import org.expressme.openid.*;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -15,16 +12,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
-import org.expressme.openid.Association;
-import org.expressme.openid.Authentication;
-import org.expressme.openid.Endpoint;
-import org.expressme.openid.OpenIdException;
-import org.expressme.openid.OpenIdManager;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @WebServlet("/openid/*")
 public class OpenIdServlet extends HttpServlet {
@@ -49,7 +43,7 @@ public class OpenIdServlet extends HttpServlet {
 
         manager.setRealm("http://localhost:8080"); // change to your domain
         manager.setReturnTo("http://localhost:8080/openid/verify"); // change to your servlet url
-        */
+*/
 
         manager.setRealm("http://mongo-cli-java.herokuapp.com");
         manager.setReturnTo("http://mongo-cli-java.herokuapp.com/openid/verify");

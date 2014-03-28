@@ -22,13 +22,11 @@ send({fn:'remove', args:[{a:4}]}, function(d){console.log(d)}) //removes matchin
 var coll = 'foo';
 var token = document.cookie.replace(/(?:(?:^|.*;\s*)wsc9\s*\=\s*([^;]*).*$)|^.*$/, "$1"), email;
 
-//var host = 'http://mongo-cli-java.cyril.eu.cloudbees.net';
-//var host = 'http://mongo-cli-java.herokuapp.com';
-
-//var host = 'http://localhost:8080/mongo-cli-0.0.1-SNAPSHOT';
-var host = location.href.substr(0, location.href.length-1);
-
-var ws = new WebSocket(host.replace('http','ws')+'/api/'+coll+'?token='+token);
+//var host = 'http://mongo-cli-java.cyril.eu.cloudbees.net/';
+//var host = 'http://mongo-cli-java.herokuapp.com/';
+var host = location.href;
+//var host='http://localhost:8080/';
+var ws = new WebSocket(host.replace('http','ws')+'api/'+coll+'?token='+token);
 
 ws.onopen    = function()  {
   console.log('[*] open');
@@ -83,7 +81,7 @@ logout.onclick = function(){
 
 login.onclick =function(){
     var url = openId.value;
-    var popup = window.open( host + '/openid/authenticate?openid_identifier='+url, 'openid_popup', 'width=790,height=580');
+    var popup = window.open( host + 'openid/authenticate?openid_identifier='+url, 'openid_popup', 'width=790,height=580');
     setInterval(function(){
         popup.postMessage("ping", host);
     }, 500);
