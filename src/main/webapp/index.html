@@ -45,7 +45,7 @@ ws.onopen    = function()  {
 ws.onmessage = function(e) {
   var r=JSON.parse(e.data);
   if (cbs[r._i]){
-    cbs[r._i](r.msg);
+    cbs[r._i](r.args);
     cbs[r._i]=undefined;
   }else{
     console.log(r);

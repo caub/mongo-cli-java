@@ -1,19 +1,18 @@
 package ws;
 
-import static ws.OpenIdServlet.tokens;
-import static ws.Persistence.db;
+import com.mongodb.*;
+import com.mongodb.util.JSON;
+
+import javax.websocket.*;
+import javax.websocket.server.PathParam;
+import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.websocket.*;
-import javax.websocket.server.PathParam;
-import javax.websocket.server.ServerEndpoint;
-
-import com.mongodb.*;
-import com.mongodb.util.JSON;
-import org.bson.types.ObjectId;
+import static ws.OpenIdServlet.tokens;
+import static ws.Persistence.db;
 
 @ServerEndpoint("/api/{collection}")
 public class WsServlet {
@@ -38,16 +37,16 @@ public class WsServlet {
         //   for (Object o : (BasicDBList)d) { broadcast(o, fn, _i); }
         //}else {
         BasicDBObject o = (BasicDBObject) d;
-        String reply = JSON.serialize(new BasicDBObject("msg", d).append("fn", fn));
-        BasicDBList readers=(BasicDBList)o.get("_canRead");
-        if (readers!=null && readers.size()!=0){
-            for (Object i : readers){
-                if (conns.get(i)!=null && conns.get(i).size()>0)
-                    for(Session wsi : conns.get(i))
+        String reply = JSON.serialize(new BasicDBObject("args", d).append("fn", fn));
+        BasicDBList readers = (BasicDBList) o.get("_canRead");
+        if (readers != null && readers.size() != 0) {
+            for (Object i : readers) {
+                if (conns.get(i) != null && conns.get(i).size() > 0)
+                    for (Session wsi : conns.get(i))
                         if (!wsi.equals(ws))
                             wsi.getBasicRemote().sendText(reply);
             }
-        }else{
+        } else {
             for (Session s : ws.getOpenSessions())
                 if (!s.equals(ws))
                     s.getBasicRemote().sendText(reply);
@@ -59,47 +58,53 @@ public class WsServlet {
 
     @OnOpen
     public void onOpen(Session session, EndpointConfig c,
-                       @PathParam("collection") String collname ) throws IOException, ParseException {
+                       @PathParam("collection") String collname) throws IOException, ParseException {
         //session.setMaxIdleTimeout(0);
 
         this.ws = session;
 
-        System.out.println("qs "+session.getQueryString());
+        System.out.println("qs " + session.getQueryString());
         Map<String, List<String>> qs = session.getRequestParameterMap();
         this.coll = db.getCollection(prefix + collname /*qs.get("coll").get(0)*/);
         this.token = qs.get("token").get(0);
-        System.out.println("token " + token+" "+this.coll.getName());
+        System.out.println("token " + token + " " + this.coll.getName());
         email = tokens.get(token);
 
         rights = new Rights(email);
 
-        if (email!=null){
+        if (email != null) {
             if (conns.containsKey(email))
                 conns.get(email).add(session);
             else
-                conns.put(email, new HashSet<Session>(){{this.add(ws);}});
+                conns.put(email, new HashSet<Session>() {{
+                    this.add(ws);
+                }});
         }
         //session.getBasicRemote().sendText(JSON.serialize(new BasicDBObject("type", "auth").append("doc", userToken)));
     }
 
     @OnClose
     public void onClose(Session session) {
-        if (email!=null)
+        if (email != null)
             conns.get(email).remove(session);
     }
 
     @OnMessage
     public String onMessage(String message) {
 
-        try{
+        try {
             BasicDBObject o = (BasicDBObject) JSON.parse(message);
             String fn = o.getString("fn");
 
-            if (fn.equals("auth")){
-                return JSON.serialize(new BasicDBObject("msg", email).append("_i", o.getInt("_i")));
-            }else if (fn.equals("echo")){
+            if (fn.equals("auth")) {
+                return JSON.serialize(new BasicDBObject("args", email).append("_i", o.getInt("_i")));
+            } else if (fn.equals("echo")) {
                 return message;
-            }else{
+            } else if (fn.equals("broadcast")) {
+                for (Session s : ws.getOpenSessions())
+                    s.getBasicRemote().sendText(message);
+                return null;
+            } else {
                 Control c = Access.valueOf(fn);
                 Object[] args = ((BasicDBList) o.get("args")).toArray();
 
@@ -113,10 +118,11 @@ public class WsServlet {
                 c.control(args, rights);
 
                 Class[] types = new Class[args.length];
-                for (int i=0; i<args.length; i++){
-                    if ( args[i]==null) types[i] = DBObject.class;
-                    else {Class cls = args[i].getClass();
-                        types[i] = cls.equals(BasicDBObject.class)?DBObject.class : cls.equals(Boolean.class)?boolean.class : cls;//(Class) args.get(i).getClass().getGenericInterfaces()[0];
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i] == null) types[i] = DBObject.class;
+                    else {
+                        Class cls = args[i].getClass();
+                        types[i] = cls.equals(BasicDBObject.class) ? DBObject.class : cls.equals(Boolean.class) ? boolean.class : cls;//(Class) args.get(i).getClass().getGenericInterfaces()[0];
                     }
                 }
 
@@ -124,31 +130,29 @@ public class WsServlet {
                 int _i = o.getInt("_i");
 
                 Object obj = coll.getClass().getMethod(fn, types).invoke(coll, args);
-                if (fn.equals("find")){
-                    DBCursor cursor = (DBCursor)obj;
-                    List<Object> result =new ArrayList<Object>();
-                    while(cursor.hasNext())
+                if (fn.equals("find")) {
+                    DBCursor cursor = (DBCursor) obj;
+                    List<Object> result = new ArrayList<Object>();
+                    while (cursor.hasNext())
                         result.add(cursor.next());
                     cursor.close();
-                    System.out.println("find"+result);
-                    return JSON.serialize(new BasicDBObject("msg", result).append("_i", _i));
+                    //System.out.println("find" + result);
+                    return JSON.serialize(new BasicDBObject("args", result).append("_i", _i));
 
-                }else if(obj instanceof DBObject){//worth broadcasting //check null?
-                    broadcast(obj, fn , _i);
-                    return JSON.serialize(new BasicDBObject("msg", obj).append("fn",fn).append("_i",_i));
-                }else if (obj instanceof WriteResult)
-                    return JSON.serialize(new BasicDBObject("msg", ((WriteResult)obj).getN()).append("_i", _i));
+                } else if (obj instanceof DBObject) {//worth broadcasting //check null?
+                    broadcast(obj, fn, _i);
+                    return JSON.serialize(new BasicDBObject("args", obj).append("fn", fn).append("_i", _i));
+                } else if (obj instanceof WriteResult)
+                    return JSON.serialize(new BasicDBObject("args", ((WriteResult) obj).getN()).append("_i", _i));
                 else
-                    return JSON.serialize(new BasicDBObject("msg", obj).append("_i", _i));
-
+                    return JSON.serialize(new BasicDBObject("args", obj).append("_i", _i));
             }
 
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return JSON.serialize(new BasicDBObject("error", e.getMessage()));
         }
     }
-
 
 
 }

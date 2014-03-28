@@ -44,7 +44,7 @@ public class Main {
         context.addServlet(ws.OpenIdServlet.class,"/openid/*");
 
         server.start();
-        context.dumpStdErr();
+        //context.dumpStdErr();
         server.join();
 
     }
