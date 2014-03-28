@@ -26,4 +26,4 @@ Example in javascript:
 
 Server demos: [Heroku](http://mongo-cli-java.herokuapp.com/), [Cloudbees](http://mongo-cli-java.cyril.eu.cloudbees.net/)
 
-Client demos: [MultiPaint](http://jsbin.com/afiMEWa/latest), [Chat](http://jsbin.com/facof/latest), [TasksList](http://jsbin.com/EduGeZE/latest), [Calendar](http://jsbin.com/UmUbipa/latest)
+Client demos: [Paint](http://jsbin.com/muquv/latest), [Chat](http://jsbin.com/dozik/latest), [Todos](http://jsbin.com/sonuw/latest)
