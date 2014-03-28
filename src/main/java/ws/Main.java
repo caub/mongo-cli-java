@@ -1,7 +1,5 @@
 package ws;
 
-//import org.apache.catalina.startup.Tomcat;
-
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import org.eclipse.jetty.server.Server;
@@ -10,6 +8,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
+import org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter;
 
 
 public class Main {
@@ -33,7 +32,9 @@ public class Main {
         server.setHandler(context);
 
         ServerContainer wsContainer = WebSocketServerContainerInitializer.configureContext(context);
-
+        WebSocketUpgradeFilter filter =
+                (WebSocketUpgradeFilter)context.getAttribute("org.eclipse.jetty.websocket.server.WebSocketUpgradeFilter");
+        filter.getFactory().getExtensionFactory().unregister("permessage-deflate");
         wsContainer.addEndpoint(WsServlet.class);
 
         ServletHolder holderPwd = new ServletHolder("default", DefaultServlet.class);
