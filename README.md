@@ -5,7 +5,7 @@ MongoDB from a websocket, with extra features:
  - **Access-rights** on documents
  - **Notifications**
 
-The syntax is following [java-mongodb driver API](http://api.mongodb.org/java/current/com/mongodb/DBCollection.html)  
+It works by sending `{fn: someFunction, args: someArguments}` following the syntax of [Mongo's Java driver](http://api.mongodb.org/java/current/com/mongodb/DBCollection.html)  
 Example in javascript:
 
     send({fn:'find', args:[{a: 2}]}, function(d){console.log(d)})
