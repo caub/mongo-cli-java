@@ -28,7 +28,7 @@ public class WsServlet {
     Session ws;
 
     static ConcurrentHashMap<String, Set<Session>> conns = new ConcurrentHashMap<>(); //sessions per user name
-    // todo put back the collection level <user, <collection, sessions>> else one endpoints floods the others
+    // todo put back the collection level <user, <collection, sessions>> else one endpoint floods the others
 
     Rights rights;
 
