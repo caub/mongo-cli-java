@@ -25,7 +25,7 @@ import com.mongodb.util.JSON;
 @WebListener
 public class Persistence implements ServletContextListener{
 
-	static String MONGO_URI = "mongodb://cyril:cccc1111@ds053978.mongolab.com:53978/jfx";
+	static String MONGO_URI = "mongodb://user:pass@ds053978.mongolab.com:53978/jfx";
 	static MongoClient m;
 	static DB db = null; // is already a pool of connections through this
 							// singleton
